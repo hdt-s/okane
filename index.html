@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1f7a4d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="おかね">
+<script>try { const c = JSON.parse(localStorage.getItem('okane-prefs') || '{}').color; if (c) document.documentElement.dataset.color = c; } catch (e) {}</script>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+<title>おかね</title>
+</head>
+<body>
+<header>
+  <div class="head-main">
+    <div class="total-label">純資産</div>
+    <div id="net" class="total">¥0</div>
+    <div id="usd" class="usd"></div>
+    <div id="sub" class="subtotal"></div>
+  </div>
+  <button type="button" id="open-settings" class="gear" aria-label="設定">⚙︎</button>
+</header>
+
+<main>
+  <!-- 記録 -->
+  <section id="tab-add" class="tab active">
+    <form id="form">
+      <div class="seg" id="type-seg">
+        <button type="button" data-type="expense" class="on">支出</button>
+        <button type="button" data-type="income">収入</button>
+        <button type="button" data-type="transfer">移動</button>
+      </div>
+      <input id="amount" class="amount" inputmode="numeric" placeholder="金額" autocomplete="off">
+      <div class="label-row"><span class="label" id="from-label">支払い元</span><button type="button" class="sort-btn" data-sort="accounts">並べ替え</button></div>
+      <div class="chips" id="from-chips"></div>
+      <div id="to-wrap" hidden>
+        <div class="label">移動先</div>
+        <div class="chips" id="to-chips"></div>
+      </div>
+      <div id="cat-wrap">
+        <div class="label-row"><span class="label" id="cat-label">用途</span><button type="button" class="sort-btn" data-sort="cats">編集</button></div>
+        <div class="chips" id="cat-chips"></div>
+        <div class="seg nature-seg" id="nature-seg" role="group" aria-label="この支出の性質" hidden></div>
+      </div>
+      <div class="row">
+        <input id="memo" placeholder="メモ" autocomplete="off">
+        <input id="date" type="date" aria-label="日付">
+      </div>
+      <button id="save" class="primary" type="submit">記録</button>
+      <div id="edit-bar" hidden>
+        <span>編集中</span>
+        <button type="button" id="cancel-edit">キャンセル</button>
+        <button type="button" id="delete-tx" class="danger">削除</button>
+      </div>
+    </form>
+    <h3>予定</h3>
+    <ul id="home-plans" class="list"></ul>
+    <div class="label-row h3row"><h3>残高</h3><button type="button" class="sort-btn" data-sort="balances">並べ替え</button></div>
+    <ul id="balances" class="list"></ul>
+  </section>
+
+  <!-- 項目の詳細 -->
+  <section id="tab-account" class="tab">
+    <button type="button" id="acct-back">◀ 戻る</button>
+    <div id="acct-detail"></div>
+  </section>
+
+  <!-- 履歴（集計／明細） -->
+  <section id="tab-history" class="tab">
+    <div class="seg" id="period-mode">
+      <button type="button" data-mode="all" class="on">全期間</button>
+      <button type="button" data-mode="month">月ごと</button>
+      <button type="button" data-mode="range">指定</button>
+    </div>
+    <div class="row month-nav" id="pm-month" hidden>
+      <button type="button" id="prev-period" aria-label="前の月">◀</button>
+      <strong id="period-label"></strong>
+      <button type="button" id="next-period" aria-label="次の月">▶</button>
+    </div>
+    <div class="row range" id="pm-range" hidden>
+      <select id="r-from" aria-label="始まりの月"></select>
+      <span class="tilde">〜</span>
+      <select id="r-to" aria-label="終わりの月"></select>
+    </div>
+    <div class="row">
+      <select id="hist-filter" aria-label="項目で絞り込み"></select>
+    </div>
+    <div class="seg view-seg" id="view-seg">
+      <button type="button" data-view="summary" class="on">集計</button>
+      <button type="button" data-view="chart">グラフ</button>
+      <button type="button" data-view="list">明細</button>
+    </div>
+    <div id="hist-summary"></div>
+    <div id="hist-chart" hidden></div>
+    <div id="hist-list" hidden>
+      <div id="hist-chip"></div>
+      <ul id="history" class="list"></ul>
+    </div>
+  </section>
+
+  <!-- 予定 -->
+  <section id="tab-plans" class="tab">
+    <div id="card-bills"></div>
+    <h3>定期支払い</h3>
+    <ul id="fixed" class="list"></ul>
+    <details id="plans-box" class="fold">
+      <summary><h3>予定（3か月）<span id="plans-count" class="count"></span></h3></summary>
+      <ul id="plans" class="list"></ul>
+    </details>
+    <h3 id="plan-form-title">予定を追加</h3>
+    <form id="plan-form">
+      <div class="seg" id="plan-type">
+        <button type="button" data-type="income" class="on">収入</button>
+        <button type="button" data-type="expense">支出</button>
+      </div>
+      <label class="field">名前<input name="name"></label>
+      <label class="field">金額<input name="amount" inputmode="numeric"></label>
+      <label class="field">口座<select name="account"></select></label>
+      <label class="field">カテゴリ<select name="category"></select></label>
+      <label class="field">日付<input name="date" type="date"></label>
+      <label class="field">繰り返し<select name="repeat"><option value="monthly">毎月</option><option value="yearly">毎年</option><option value="none">なし</option></select></label>
+      <label class="check"><input type="checkbox" name="auto"> 支払日に自動で記録</label>
+      <button type="submit" class="primary" id="plan-submit">追加</button>
+      <button type="button" id="plan-cancel" hidden>キャンセル</button>
+      <button type="button" id="plan-delete" class="danger" hidden>削除</button>
+    </form>
+  </section>
+
+  <!-- 設定 -->
+  <section id="tab-settings" class="tab">
+    <p id="setup-msg" class="notice" hidden>今の残高を入力して保存。口座やカードは下の「＋ 項目を追加」から</p>
+    <h3>色</h3>
+    <div class="seg color-seg" id="color-seg" role="group" aria-label="アプリの色"></div>
+    <h3>項目</h3>
+    <div id="acct-edit"></div>
+    <button type="button" id="add-acct">＋ 項目を追加</button>
+    <h3>カテゴリ</h3>
+    <label class="field">支出の用途<textarea id="cat-expense" rows="3"></textarea></label>
+    <label class="field">収入源<textarea id="cat-income" rows="2"></textarea></label>
+    <button type="button" id="save-settings" class="primary">すべて保存</button>
+    <h3>バックアップ</h3>
+    <div class="row">
+      <button type="button" id="export">書き出し</button>
+      <label class="button">読み込み<input id="import" type="file" accept="application/json,.json" hidden></label>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button data-tab="add" class="on">記録</button>
+  <button data-tab="history">履歴</button>
+  <button data-tab="plans">予定</button>
+</nav>
+
+<div id="sorter" role="dialog" aria-modal="true" aria-labelledby="sorter-title" hidden>
+  <div class="sorter-head"><strong id="sorter-title"></strong><button type="button" id="sorter-done" class="primary-sm">完了</button></div>
+  <ul id="sorter-list"></ul>
+</div>
+
+<div id="toast" role="status" aria-live="polite" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
