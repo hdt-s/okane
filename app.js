@@ -1267,9 +1267,11 @@ function saveSettings() {
   const split = s => s.split(/[,、，]/).map(x => x.trim()).filter(Boolean);
   state.accounts = accounts;
   state.categories = { expense: otherLast(split($('#cat-expense').value)), income: otherLast(split($('#cat-income').value)) };
+  const first = !state.setupDone;
   state.setupDone = true;
   save(); renderAll(); renderSettings();
-  toast('保存しました');
+  // 初めての設定が終わったら、記録の画面へ
+  if (first) { showTab('add'); window.scrollTo(0, 0); toast('保存しました。ここから記録できます'); } else toast('保存しました');
 }
 
 // ---------- バックアップ ----------
