@@ -9,8 +9,9 @@ const KINDS = { asset: '資産', card: 'カード', liability: '負債', held: '
 const DEFAULT_ACCOUNTS = [
   { id: 'cash', name: '現金', kind: 'asset' },
 ];
+// 新しく始める人の最初の用途。何に使ったか（中身）で分け、払い方（カード・サブスク）では分けない。性質は DEFAULT_NATURES
 const DEFAULT_CATS = {
-  expense: ['食費', '外食', 'コンビニ', '本', '交通', '日用品', '娯楽', 'サブスク', 'その他'],
+  expense: ['学び', '運動・健康', '食費', '日用品', '交通', '通信', '服・美容', 'おやつ', '娯楽', 'その他'],
   income: ['給料', 'もらいもの', '臨時', 'その他'],
 };
 const REPEAT_STEP = { monthly: 1, yearly: 12 };
@@ -19,7 +20,8 @@ const REPEAT_STEP = { monthly: 1, yearly: 12 };
 const NATURES = [['invest', '投資'], ['consume', '消費'], ['waste', '浪費']];
 const NATURE_LABEL = Object.fromEntries(NATURES);
 const NATURE_COLOR = { invest: '#3d6fe0', consume: '#1a9970', waste: '#d6336c' }; // アプリの色に関係なく固定（サファイア・エメラルド・ルビー）。白黒どちらの地とも3:1以上
-const DEFAULT_NATURES = { 本: 'invest', コンビニ: 'waste', 娯楽: 'waste', ホットスナック: 'waste' };
+// 書いていない用途は消費。後ろの4つは、性質を持たない古いデータ（v25より前の書き出し）を読んだ時のため
+const DEFAULT_NATURES = { 学び: 'invest', '運動・健康': 'invest', おやつ: 'waste', 娯楽: 'waste', 本: 'invest', コンビニ: 'waste', ホットスナック: 'waste' };
 function natureOf(cat) { return state.natures?.[cat] || 'consume'; }
 function txNature(t) { return t.nature || natureOf(t.category); }
 

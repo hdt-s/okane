@@ -1,5 +1,5 @@
 // キャッシュ優先＋裏で更新（Macに繋がらなくても即起動するため）
-const CACHE = 'okane-v52';
+const CACHE = 'okane-v53';
 const FILES = ['./', 'index.html', 'app.js', 'style.css', 'manifest.json', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
