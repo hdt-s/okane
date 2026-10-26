@@ -1473,6 +1473,13 @@ $('#color-seg').addEventListener('click', onBtn(b => {
   savePrefs(); applyColor(); renderColorSeg(); renderHistory();
 }));
 $('#import').addEventListener('change', importData);
+$('#reset-all').addEventListener('click', () => {
+  if (!confirm('このスマホの記録・項目・予定・色をすべて消して、最初の状態に戻します。元に戻せません。先に「書き出し」でバックアップを取りましたか？')) return;
+  localStorage.removeItem(KEY); localStorage.removeItem(PREF_KEY);
+  location.reload();
+});
+// 今動いている版（設定の一番下に小さく出す。更新が届いたかを確かめるため）
+window.caches?.keys().then(k => { const v = k.find(x => x.startsWith('okane-')); if (v) $('#app-ver').textContent = '版 ' + v.replace('okane-', ''); }).catch(() => {});
 
 applyColor();
 $('#date').value = today();
@@ -1496,6 +1503,7 @@ if ('serviceWorker' in navigator) {
   const hadController = !!navigator.serviceWorker.controller;
   // ただし入力の途中なら消さないよう、アプリを裏に回した時まで待つ
   navigator.serviceWorker.addEventListener('controllerchange', () => { if (!hadController) return; if (isIdle()) location.reload(); else reloadLater = true; });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && reloadLater) location.reload(); });
+  // iPhoneは裏に回すとすぐ止まって読み込み直せないことがあるので、戻ってきた時も入力の途中でなければ読み込み直す
+  document.addEventListener('visibilitychange', () => { if (reloadLater && (document.hidden || isIdle())) location.reload(); });
   navigator.serviceWorker.register('sw.js');
 }
