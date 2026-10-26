@@ -10,9 +10,9 @@ const DEFAULT_ACCOUNTS = [
   { id: 'cash', name: '現金', kind: 'asset' },
   { id: 'paypay', name: 'PayPay', kind: 'asset' },
 ];
-// 新しく始める人の最初の用途。なるべく具体的な物の名前にする。性質ごとに「その他（性質）」を最後に置く。性質は DEFAULT_NATURES
+// 新しく始める人の最初の用途。なるべく具体的な物の名前にする。性質は DEFAULT_NATURES
 const DEFAULT_CATS = {
-  expense: ['本', 'ジム', '服', 'その他（投資）', 'ご飯', '日用品', '交通', 'その他（消費）', 'お菓子', '娯楽', 'その他（浪費）'],
+  expense: ['本', 'ジム', '服', 'ご飯', '日用品', '交通', 'お菓子', '娯楽'],
   income: ['給料', 'もらいもの', '臨時', 'その他'],
 };
 const REPEAT_STEP = { monthly: 1, yearly: 12 };
@@ -22,7 +22,7 @@ const NATURES = [['invest', '投資'], ['consume', '消費'], ['waste', '浪費'
 const NATURE_LABEL = Object.fromEntries(NATURES);
 const NATURE_COLOR = { invest: '#3d6fe0', consume: '#1a9970', waste: '#d6336c' }; // アプリの色に関係なく固定（サファイア・エメラルド・ルビー）。白黒どちらの地とも3:1以上
 // 書いていない用途は消費。後ろの4つは、性質を持たない古いデータ（v25より前の書き出し）を読んだ時のため
-const DEFAULT_NATURES = { 本: 'invest', ジム: 'invest', 服: 'invest', 'その他（投資）': 'invest', お菓子: 'waste', 娯楽: 'waste', 'その他（浪費）': 'waste', コンビニ: 'waste', ホットスナック: 'waste' };
+const DEFAULT_NATURES = { 本: 'invest', ジム: 'invest', 服: 'invest', 'その他（投資）': 'invest', お菓子: 'waste', 娯楽: 'waste', 'その他（浪費）': 'waste', コンビニ: 'waste', ホットスナック: 'waste' }; // 「その他（投資）」などは本人が足した時のため
 function natureOf(cat) { return state.natures?.[cat] || 'consume'; }
 function txNature(t) { return t.nature || natureOf(t.category); }
 
