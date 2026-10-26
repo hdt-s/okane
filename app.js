@@ -5,13 +5,14 @@ const PREF_KEY = 'okane-prefs';
 
 // 項目の種類。純資産に入るのは asset / card / liability だけ
 const KINDS = { asset: '資産', card: 'カード', liability: '負債', held: '預かり', item: '持ち物' };
-// 新しく始める人の最初の項目（口座やカードは本人が足す）。使っている人の項目は、その人の端末のデータにある
+// 新しく始める人の最初の項目（ほかの口座やカードは本人が足す）。使っている人の項目は、その人の端末のデータにある
 const DEFAULT_ACCOUNTS = [
   { id: 'cash', name: '現金', kind: 'asset' },
+  { id: 'paypay', name: 'PayPay', kind: 'asset' },
 ];
-// 新しく始める人の最初の用途。何に使ったか（中身）で分け、払い方（カード・サブスク）では分けない。性質は DEFAULT_NATURES
+// 新しく始める人の最初の用途。なるべく具体的な物の名前にする。性質ごとに「その他（性質）」を最後に置く。性質は DEFAULT_NATURES
 const DEFAULT_CATS = {
-  expense: ['学び', '運動・健康', '食費', '日用品', '交通', '通信', '服・美容', 'おやつ', '娯楽', 'その他'],
+  expense: ['本', 'ジム', '服', 'その他（投資）', 'ご飯', '日用品', '交通', 'その他（消費）', 'お菓子', '娯楽', 'その他（浪費）'],
   income: ['給料', 'もらいもの', '臨時', 'その他'],
 };
 const REPEAT_STEP = { monthly: 1, yearly: 12 };
@@ -21,7 +22,7 @@ const NATURES = [['invest', '投資'], ['consume', '消費'], ['waste', '浪費'
 const NATURE_LABEL = Object.fromEntries(NATURES);
 const NATURE_COLOR = { invest: '#3d6fe0', consume: '#1a9970', waste: '#d6336c' }; // アプリの色に関係なく固定（サファイア・エメラルド・ルビー）。白黒どちらの地とも3:1以上
 // 書いていない用途は消費。後ろの4つは、性質を持たない古いデータ（v25より前の書き出し）を読んだ時のため
-const DEFAULT_NATURES = { 学び: 'invest', '運動・健康': 'invest', おやつ: 'waste', 娯楽: 'waste', 本: 'invest', コンビニ: 'waste', ホットスナック: 'waste' };
+const DEFAULT_NATURES = { 本: 'invest', ジム: 'invest', 服: 'invest', 'その他（投資）': 'invest', お菓子: 'waste', 娯楽: 'waste', 'その他（浪費）': 'waste', コンビニ: 'waste', ホットスナック: 'waste' };
 function natureOf(cat) { return state.natures?.[cat] || 'consume'; }
 function txNature(t) { return t.nature || natureOf(t.category); }
 
@@ -40,7 +41,12 @@ let currentTab = 'add';
 
 // ---------- 保存と読み込み ----------
 // 「その他」は常に一番下
-function otherLast(list) { return [...list.filter(c => c !== 'その他'), ...list.filter(c => c === 'その他')]; }
+// 「その他」と「その他（投資）」などは、いつも最後（記録の画面では性質の見出しの下で「その他」とだけ出す）
+function isOther(c) { return c === 'その他' || /^その他（.+）$/.test(c); }
+function otherLast(list) { return [...list.filter(c => !isOther(c)), ...list.filter(isOther)]; }
+function shortOther(c) { return /^その他（.+）$/.test(c) ? 'その他' : c; }
+// 用途の無い予定を自動で記録する時の支出の用途
+function fallbackExpenseCat() { return state.categories.expense.find(c => c === 'その他') || state.categories.expense.find(c => c === 'その他（消費）') || 'その他'; }
 // カテゴリを足す（「その他」の上に入る）。足した名前を返す
 function addCategoryName(type, name) {
   const c = name?.trim();
@@ -101,8 +107,8 @@ function load() {
     const s = JSON.parse(localStorage.getItem(KEY));
     if (s && Array.isArray(s.accounts) && Array.isArray(s.txs)) return migrate(s);
   } catch (e) {}
-  // まっさらから始める時は今の形（version 4）で作る。古いデータ向けの移行（小銭の自動追加など）は通さない
-  return migrate({ version: 4, setupDone: false, fixes: ['held-in-cash'], accounts: structuredClone(DEFAULT_ACCOUNTS), categories: structuredClone(DEFAULT_CATS), txs: [], plans: [] });
+  // まっさらから始める時は今の形（version 4）で作る。古いデータ向けの移行（小銭の自動追加など）は通さない。最初の設定画面は出さず、すぐ記録から始める
+  return migrate({ version: 4, setupDone: true, fixes: ['held-in-cash'], accounts: structuredClone(DEFAULT_ACCOUNTS), categories: structuredClone(DEFAULT_CATS), txs: [], plans: [] });
 }
 function save() { localStorage.setItem(KEY, JSON.stringify(state)); }
 function loadPrefs() {
@@ -331,7 +337,7 @@ function runAutoPlans() {
     if (!p.auto) continue;
     for (let guard = 0; p.date <= t0 && guard < 60; guard++) {
       const income = p.type === 'income';
-      state.txs.push({ id: uid(), date: p.date, type: p.type, amount: p.amount, from: income ? null : p.account, to: income ? p.account : null, category: p.category || (income ? '給料' : 'その他'), memo: p.name, auto: true, createdAt: Date.now() + n });
+      state.txs.push({ id: uid(), date: p.date, type: p.type, amount: p.amount, from: income ? null : p.account, to: income ? p.account : null, category: p.category || (income ? '給料' : fallbackExpenseCat()), memo: p.name, auto: true, createdAt: Date.now() + n });
       n++;
       if (!REPEAT_STEP[p.repeat]) { state.plans = state.plans.filter(x => x !== p); break; }
       p.date = addMonths(p.date, REPEAT_STEP[p.repeat], p.day);
@@ -393,7 +399,7 @@ function planClick(e) {
   const amount = parseAmount(input);
   if (!(amount > 0)) return toast('数字で入力');
   const income = p.type === 'income';
-  state.txs.push({ id: uid(), date: today(), type: p.type, amount, from: income ? null : p.account, to: income ? p.account : null, category: p.category || (income ? '給料' : 'その他'), memo: p.name, createdAt: Date.now() });
+  state.txs.push({ id: uid(), date: today(), type: p.type, amount, from: income ? null : p.account, to: income ? p.account : null, category: p.category || (income ? '給料' : fallbackExpenseCat()), memo: p.name, createdAt: Date.now() });
   if (REPEAT_STEP[p.repeat]) p.date = addMonths(p.date, REPEAT_STEP[p.repeat], p.day);
   else state.plans = state.plans.filter(x => x !== p);
   save(); renderAll();
@@ -755,7 +761,7 @@ function renderForm() {
   const cats = state.categories[form.type] || [];
   if (!cats.includes(form.category)) form.category = null;
   if (form.type === 'expense') {
-    $('#cat-chips').innerHTML = NATURES.map(([k, label]) => `<div class="cat-head">${label}</div><div class="grid">${cats.filter(c => natureOf(c) === k).map(c => chip(c, c, c === form.category, 5)).join('')}<button type="button" data-add="1" data-nature="${k}" class="add" aria-label="${label}に用途を追加">＋</button></div>`).join('');
+    $('#cat-chips').innerHTML = NATURES.map(([k, label]) => `<div class="cat-head">${label}</div><div class="grid">${cats.filter(c => natureOf(c) === k).map(c => chip(c, shortOther(c), c === form.category, 5)).join('')}<button type="button" data-add="1" data-nature="${k}" class="add" aria-label="${label}に用途を追加">＋</button></div>`).join('');
   } else {
     $('#cat-chips').innerHTML = `<div class="grid">${cats.map(c => chip(c, c, c === form.category, 5)).join('')}<button type="button" data-add="1" class="add" aria-label="収入源を追加">＋</button></div>`;
   }
@@ -1463,7 +1469,7 @@ $('#add-acct').addEventListener('click', () => openNewAccount());
 $('#save-settings').addEventListener('click', saveSettings);
 $('#export').addEventListener('click', exportData);
 $('#color-seg').addEventListener('click', onBtn(b => {
-  if (b.dataset.color === 'green') delete prefs.color; else prefs.color = b.dataset.color;
+  prefs.color = b.dataset.color; // 緑も明示して保存（まっさらの時の藍に戻らないように）
   savePrefs(); applyColor(); renderColorSeg(); renderHistory();
 }));
 $('#import').addEventListener('change', importData);

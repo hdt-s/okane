@@ -6,7 +6,14 @@
 <meta name="theme-color" content="#1f7a4d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="おかね">
-<script>try { const c = JSON.parse(localStorage.getItem('okane-prefs') || '{}').color; if (c) document.documentElement.dataset.color = c; } catch (e) {}</script>
+<script>
+// 色は端末ごと。まっさらから始める人は藍（設定からあとで変えられる）
+try {
+  const p = JSON.parse(localStorage.getItem('okane-prefs') || '{}');
+  if (!p.color && !localStorage.getItem('okane-data')) { p.color = 'ai'; localStorage.setItem('okane-prefs', JSON.stringify(p)); }
+  if (p.color) document.documentElement.dataset.color = p.color;
+} catch (e) {}
+</script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="style.css">
